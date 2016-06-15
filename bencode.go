@@ -20,96 +20,102 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 )
 
-func ParseDict(r *bufio.Reader) map[string]interface{} {
+func ParseDict(r *bufio.Reader) (error, map[string]interface{}) {
 	dict := make(map[string]interface{})
 
 	// dictionaries start with 'd' in bencoding, and a metainfo file is a
 	// dictionary
 	d_byte, err := r.ReadByte()
 	if err != nil {
-		log.Fatalln(err)
+		return err, nil
 	}
 	if d_byte != 'd' {
-		log.Fatalln("unexpected byte where 'd' for dictionary was expected:", d_byte)
+		return fmt.Errorf("unexpected byte where 'd' for dictionary was expected:", d_byte), nil
 	}
 
 	for {
 		byt, err := r.ReadByte()
 		if err != nil {
-			log.Fatalln(err)
+			return err, nil
 		}
 		if byt < 48 || byt > 57 {
 			if byt == 'e' {
 				break
 			} else {
-				log.Fatalln("unexpected byte in dictionary metadata:", byt)
+				return fmt.Errorf("unexpected byte in dictionary metadata:", byt), nil
 			}
 		}
 		r.UnreadByte()
 
 		// parse key
-		key := ParseString(r)
+		err, key := ParseString(r)
+		if err != nil {
+			return err, nil
+		}
 
 		// parse value
 		peek_byte, err := r.Peek(1)
 		if err != nil {
-			log.Fatalln(err)
+			return err, nil
 		}
 		if peek_byte[0] > 47 && peek_byte[0] < 58 {
-			dict[key] = ParseString(r)
+			err, dict[key] = ParseString(r)
 		} else if peek_byte[0] == 'i' {
-			dict[key] = ParseInt(r)
+			err, dict[key] = ParseInt(r)
 		} else if peek_byte[0] == 'l' {
-			dict[key] = ParseList(r)
+			err, dict[key] = ParseList(r)
 		} else if peek_byte[0] == 'd' {
-			dict[key] = ParseDict(r)
+			err, dict[key] = ParseDict(r)
 		} else {
-			log.Fatalln("unexpected byte in dictionary value metadata:", peek_byte[0])
+			err = fmt.Errorf("unexpected byte in dictionary value metadata:", peek_byte[0])
+		}
+
+		if err != nil {
+			return err, nil
 		}
 	}
 
-	return dict
+	return nil, dict
 }
 
-func ParseInt(r *bufio.Reader) int64 {
+func ParseInt(r *bufio.Reader) (error, int64) {
 	byt, err := r.ReadByte()
 	if err != nil {
-		log.Fatalln(err)
+		return err, 0
 	}
 	if byt != 'i' {
-		log.Fatalln("unexpected byte where 'i' for integer was expected:", byt)
+		return fmt.Errorf("unexpected byte where 'i' for integer was expected:", byt), 0
 	}
 
 	var i int64
 	// XXX: do we need to check for 0 bytes read?
 	_, err = fmt.Fscanf(r, "%de", &i)
 	if err != nil {
-		log.Fatalln(err)
+		return err, 0
 	}
 
-	return i
+	return nil, i
 }
 
-func ParseList(r *bufio.Reader) []interface{} {
+func ParseList(r *bufio.Reader) (error, []interface{}) {
 	l := make([]interface{}, 0, 0)
 
 	// dictionaries start with 'd' in bencoding, and a metainfo file is a
 	// dictionary
 	l_byte, err := r.ReadByte()
 	if err != nil {
-		log.Fatalln(err)
+		return err, nil
 	}
 	if l_byte != 'l' {
-		log.Fatalln("unexpected byte where 'l' for list was expected:", l_byte)
+		return fmt.Errorf("unexpected byte where 'l' for list was expected:", l_byte), nil
 	}
 
 	for {
 		byt, err := r.ReadByte()
 		if err != nil {
-			log.Fatalln(err)
+			return err, nil
 		}
 		if byt == 'e' {
 			break
@@ -119,50 +125,63 @@ func ParseList(r *bufio.Reader) []interface{} {
 		// parse value
 		peek_byte, err := r.Peek(1)
 		if err != nil {
-			log.Fatalln(err)
+			return err, nil
 		}
 		if peek_byte[0] > 47 && peek_byte[0] < 58 {
-			l = append(l, ParseString(r))
+			err, s := ParseString(r)
+			if err != nil {
+				return err, nil
+			}
+			l = append(l, s)
 		} else if peek_byte[0] == 'i' {
-			l = append(l, ParseInt(r))
+			err, i := ParseInt(r)
+			if err != nil {
+				return err, nil
+			}
+			l = append(l, i)
 		} else if peek_byte[0] == 'l' {
-			l = append(l, ParseList(r))
+			err, li := ParseList(r)
+			if err != nil {
+				return err, nil
+			}
+			l = append(l, li)
 		} else if peek_byte[0] == 'd' {
-			l = append(l, ParseDict(r))
+			err, d := ParseDict(r)
+			if err != nil {
+				return err, nil
+			}
+			l = append(l, d)
 		} else {
-			log.Fatalln("unexpected byte in list value metadata:", peek_byte[0])
+			return fmt.Errorf("unexpected byte in list value metadata:", peek_byte[0]), nil
 		}
 	}
 
-	return l
+	return nil, l
 }
 
-func ParseString(r *bufio.Reader) string {
+func ParseString(r *bufio.Reader) (error, string) {
 	var sz uint64
 	// XXX: do we need to check for 0 bytes read?
 	_, err := fmt.Fscanf(r, "%d", &sz)
 	if err != nil {
-		log.Fatalln(err)
+		return err, ""
 	}
 
-	readSemicolon(r)
+	// jump over semicolon
+	byt, err := r.ReadByte()
+	if err != nil {
+		return err, ""
+	}
+	if byt != ':' {
+		return fmt.Errorf("expected semicolon, encountered %b", byt), ""
+	}
 
 	b := make([]byte, sz, sz)
 
 	_, err = io.ReadFull(r, b)
 	if err != nil {
-		log.Fatalln(err)
+		return err, ""
 	}
 
-	return string(b)
-}
-
-func readSemicolon(r *bufio.Reader) {
-	byt, err := r.ReadByte()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if byt != ':' {
-		log.Fatalf("expected semicolon, encountered %b", byt)
-	}
+	return nil, string(b)
 }
