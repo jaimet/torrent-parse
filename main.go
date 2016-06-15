@@ -106,8 +106,22 @@ func pretty_print(metainfo map[string]interface{}) {
 			fmt.Printf("\ncreation date:\t\t%s\n", time.Unix(date, 0).String())
 		case "comment":
 			fmt.Printf("\ncomment:\t\t%s\n", v)
+		case "encoding":
+			fmt.Printf("\nencoding:\t\t%s\n", v)
+		case "announce-list":
+			fmt.Printf("\nannounce list:\t\t%s\n", v)
+		case "url-list":
+			fmt.Printf("\nURL list:\t\t%s\n", v)
+		case "errors":
+			fmt.Printf("\nerrors:\t\t%s\n", v)
+		case "err_callback":
+			fmt.Printf("\nerror callback:\t\t%s\n", v)
+		case "log_callback":
+			fmt.Printf("\nlog callback:\t\t%s\n", v)
+		case "httpseeds":
+			fmt.Printf("\nHTTP seeds:\t\t%s\n", v)
 		default:
-			fmt.Println("\nencountered additional top-level dictionary key", k)
+			fmt.Fprintln(os.Stderr, "\nencountered additional top-level dictionary key:", k)
 		}
 	}
 	fmt.Println()
