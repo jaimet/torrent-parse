@@ -32,7 +32,7 @@ func ParseDict(r *bufio.Reader) (error, map[string]interface{}) {
 		return err, nil
 	}
 	if d_byte != 'd' {
-		return fmt.Errorf("unexpected byte where 'd' for dictionary was expected:", d_byte), nil
+		return fmt.Errorf("unexpected byte where 'd' for dictionary was expected: %c", d_byte), nil
 	}
 
 	for {
@@ -44,7 +44,7 @@ func ParseDict(r *bufio.Reader) (error, map[string]interface{}) {
 			if byt == 'e' {
 				break
 			} else {
-				return fmt.Errorf("unexpected byte in dictionary metadata:", byt), nil
+				return fmt.Errorf("unexpected byte in dictionary metadata: %c", byt), nil
 			}
 		}
 		r.UnreadByte()
@@ -69,7 +69,7 @@ func ParseDict(r *bufio.Reader) (error, map[string]interface{}) {
 		} else if peek_byte[0] == 'd' {
 			err, dict[key] = ParseDict(r)
 		} else {
-			err = fmt.Errorf("unexpected byte in dictionary value metadata:", peek_byte[0])
+			err = fmt.Errorf("unexpected byte in dictionary value metadata: %c", peek_byte[0])
 		}
 
 		if err != nil {
@@ -86,7 +86,7 @@ func ParseInt(r *bufio.Reader) (error, int64) {
 		return err, 0
 	}
 	if byt != 'i' {
-		return fmt.Errorf("unexpected byte where 'i' for integer was expected:", byt), 0
+		return fmt.Errorf("unexpected byte where 'i' for integer was expected: %c", byt), 0
 	}
 
 	var i int64
@@ -109,7 +109,7 @@ func ParseList(r *bufio.Reader) (error, []interface{}) {
 		return err, nil
 	}
 	if l_byte != 'l' {
-		return fmt.Errorf("unexpected byte where 'l' for list was expected:", l_byte), nil
+		return fmt.Errorf("unexpected byte where 'l' for list was expected: %c", l_byte), nil
 	}
 
 	for {
@@ -152,7 +152,7 @@ func ParseList(r *bufio.Reader) (error, []interface{}) {
 			}
 			l = append(l, d)
 		} else {
-			return fmt.Errorf("unexpected byte in list value metadata:", peek_byte[0]), nil
+			return fmt.Errorf("unexpected byte in list value metadata: %c", peek_byte[0]), nil
 		}
 	}
 
