@@ -40,8 +40,7 @@ func main() {
 		log.Fatalln("torrent-parse [metainfo-file]")
 	}
 
-	d := ParseDict(metainfo)
-	pretty_print(d)
+	pretty_print(ParseDict(metainfo))
 }
 
 func pretty_print(metainfo map[string]interface{}) {
