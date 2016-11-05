@@ -71,6 +71,13 @@ func pretty_print(metainfo map[string]interface{}) {
 					default:
 						fmt.Println("\nfile length:\t\t[unexpected value type]")
 					}
+				} else if ki == "name" {
+					switch fname := vi.(type) {
+					case string:
+						fmt.Printf("\nsole filename:\t\t%s\n", fname)
+					default:
+						fmt.Println("\nsole filename:\t\t[unexpected value type]\n")
+					}
 				} else if ki == "files" {
 					files, ok := vi.([]interface{})
 					if !ok {
